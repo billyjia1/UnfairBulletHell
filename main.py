@@ -98,7 +98,7 @@ class Ship:
 
 
 class Player(Ship):
-    def __init__(self, x, y, health=100):
+    def __init__(self, x, y, health=1000):
         super().__init__(x, y, health)
         self.ship_img = YELLOW_SPACE_SHIP
         self.laser_img = YELLOW_LASER
@@ -114,7 +114,9 @@ class Player(Ship):
             else:
                 for obj in objs:
                     if laser.collision(obj):
-                        objs.remove(obj)
+                        obj.health -= 10
+                        if obj.health <= 0:
+                            objs.remove(obj)
                         if laser in self.lasers:
                             self.lasers.remove(laser)
 
@@ -127,27 +129,70 @@ class Player(Ship):
         pygame.draw.rect(window, (0,255,0), (self.x, self.y + self.ship_img.get_height() + 10, self.ship_img.get_width() * (self.health/self.max_health), 10))
 
 
-class Enemy(Ship):
-    COLOR_MAP = {
-                "red": (RED_SPACE_SHIP, RED_LASER),
-                "green": (GREEN_SPACE_SHIP, GREEN_LASER),
-                "blue": (BLUE_SPACE_SHIP, BLUE_LASER)
-                }
+# class Enemy(Ship):
+#     COLOR_MAP = {
+#                 "red": (RED_SPACE_SHIP, RED_LASER),
+#                 "green": (GREEN_SPACE_SHIP, GREEN_LASER),
+#                 "blue": (BLUE_SPACE_SHIP, BLUE_LASER)
+#                 }
 
-    def __init__(self, x, y, color, health=100):
-        super().__init__(x, y, health)
-        self.ship_img, self.laser_img = self.COLOR_MAP[color]
+#     def __init__(self, x, y, color, health=100):
+#         super().__init__(x, y, health)
+#         self.ship_img, self.laser_img = self.COLOR_MAP[color]
+#         self.mask = pygame.mask.from_surface(self.ship_img)
+
+#     def move(self, vel):
+#         self.y += vel
+
+#     def shoot(self):
+#         if self.cool_down_counter == 0:
+#             laser = Laser(self.x-20, self.y, self.laser_img)
+#             self.lasers.append(laser)
+#             self.cool_down_counter = 1
+class Red_Enemy(Ship):
+    def __init__(self, x, y, health=100):
+        super().__init__(x, y, health=health)
+        self.ship_img, self.laser_img = RED_SPACE_SHIP, RED_LASER
+        self.mask = pygame.mask.from_surface(self.ship_img)
+
+    def move(self, vel):
+        self.y += vel + 5
+        self.x += vel
+    def shoot(self):
+        if self.cool_down_counter == 0:
+            laser = Laser(self.x - 100, self.y, self.laser_img)
+            self.lasers.append(laser)
+            self.cool_down_counter = 1
+
+class Blue_Enemy(Ship):
+    def __init__(self, x, y, health=100):
+        super().__init__(x, y, health=health)
+        self.ship_img, self.laser_img = BLUE_SPACE_SHIP, BLUE_LASER
+        self.mask = pygame.mask.from_surface(self.ship_img)
+
+    def move(self, vel):
+        self.y += vel + 2
+        self.x += vel
+    def shoot(self):
+        if self.cool_down_counter == 0:
+            laser = Laser(self.x - 100, self.y, self.laser_img)
+            self.lasers.append(laser)
+            self.cool_down_counter = 1
+
+class Green_Enemy(Ship):
+    def __init__(self, x, y, health=100):
+        super().__init__(x, y, health=health)
+        self.ship_img, self.laser_img = GREEN_SPACE_SHIP, GREEN_LASER
         self.mask = pygame.mask.from_surface(self.ship_img)
 
     def move(self, vel):
         self.y += vel
-
+        
     def shoot(self):
         if self.cool_down_counter == 0:
-            laser = Laser(self.x-20, self.y, self.laser_img)
+            laser = Laser(self.x - 50, self.y, self.laser_img)
             self.lasers.append(laser)
             self.cool_down_counter = 1
-
 
 def collide(obj1, obj2):
     offset_x = obj2.x - obj1.x
@@ -163,7 +208,7 @@ def main():
     lost_font = pygame.font.SysFont("comicsans", 60)
 
     enemies = []
-    wave_length = 20
+    wave_length = 5
     enemy_vel = 1
 
     player_vel = 5
@@ -214,8 +259,11 @@ def main():
             level += 1
             wave_length += 5
             for i in range(wave_length):
-                enemy = Enemy(random.randrange(50, WIDTH-100), random.randrange(-1500, -100), random.choice(["red", "blue", "green"]))
-                enemies.append(enemy)
+                enemy_r = Red_Enemy(random.randrange(50, WIDTH-100), random.randrange(-1500, -100))
+                enemy_b = Blue_Enemy(random.randrange(50, WIDTH-100), random.randrange(-1500, -100))
+                enemy_g = Green_Enemy(random.randrange(50, WIDTH-100), random.randrange(-1500, -100))
+                enemy_list = (enemy_b, enemy_r, enemy_g)
+                enemies.append(random.choice(enemy_list))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -237,12 +285,14 @@ def main():
             enemy.move(enemy_vel)
             enemy.move_lasers(laser_vel, player)
 
-            if random.randrange(0, 2) == 1:
+            if random.randrange(0, 120) == 1:
                 enemy.shoot()
-
-            if collide(enemy, player):
+            if collide(player, enemy):
+                enemy.health -= 50
                 player.health -= 10
-                enemies.remove(enemy)
+                if enemy.health <= 0:
+                    enemies.remove(enemy)
+
             elif enemy.y + enemy.get_height() > HEIGHT:
                 lives -= 1
                 enemies.remove(enemy)
